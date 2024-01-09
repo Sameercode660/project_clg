@@ -10,15 +10,15 @@ const nodeMailer = async (email) => {
         port: 587,
         secure: false,
         auth: {
-            user: process.env.SMTP_EMAIL,
-            pass: process.env.SMTP_PASS
+            user: 'privatething789736@gmail.com',
+            pass: 'ylpa stve wvnu tsly'
         }
     })
 
     const otp = Math.floor(Math.random() * 9999)
 
     const mailOptions = {
-        from: `<${process.env.SMTP_EMAIL}>`,
+        from:  '<privatething789736@gmail.com>',
         to: email,
         subject: 'verification',
         text: `Your four digit otp is here ${otp}`
@@ -26,7 +26,7 @@ const nodeMailer = async (email) => {
 
     transport.sendMail(mailOptions, (err, info) => {
         if(err) {
-            console.log('Error is seniding the mail',err)
+            console.log('Error is sending the mail',err)
         } else {
             console.log('Email is send successfully : ', info)
         }

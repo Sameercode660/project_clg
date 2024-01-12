@@ -24,7 +24,28 @@ const userSchema = new Schema({
     otp: {
         type: String,
         required: true
-    }
+    },
+    profilePicture: {
+        type: String // cloudinary url
+    },
+    coverImage: {
+        type: String // cloudinary url
+    },
+    bio: {
+        type: String 
+    }, 
+    followers: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
+    ],
+    following: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
+    ]
 }, {timestamps: true})
 
 export const User = mongoose.model('User', userSchema)

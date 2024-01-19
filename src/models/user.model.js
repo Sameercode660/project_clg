@@ -31,6 +31,15 @@ const userSchema = new Schema({
     coverImage: {
         type: String // cloudinary url
     },
+    location: {
+        type: String
+    },
+    website: {
+        type: String
+    },
+    joinedDate: {
+        type: Date
+    },
     bio: {
         type: String 
     }, 

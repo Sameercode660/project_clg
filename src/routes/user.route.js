@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { editProfile, forgotPassword, loginUser, newPassword, registerUser, verifyOtp } from "../controllers/user.controller.js";
+import { editProfile, forgotPassword, loginUser, newPassword, profileData, registerUser, verifyOtp } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
+import { fetchTweet, postTweet } from "../controllers/tweet.controller.js";
 
 const userRouter = Router()
 
@@ -20,8 +21,17 @@ userRouter.route('/profile-edit').post(upload.fields([
     }
 ]), editProfile
 )
+userRouter.route('/profile-data').post(profileData)
+
+userRouter.route('/post-tweet').post(upload.fields([
+    {
+        name: 'media',
+        maxCount: 1
+    }
+]), postTweet)
 
 
+userRouter.route('/fetch-tweet').post(fetchTweet)
 export {
     userRouter
 }

@@ -219,9 +219,9 @@ const editProfile = async (req, res) => {
       res.status(400).json({ message: "The body is empty" });
     }
 
-    const { email, location, website, bio } = req.body;
+    const { _id, location, website, bio, fullName } = req.body;
 
-    if (!(email && location && bio)) {
+    if (!(fullName && location && bio)) {
       res.status(400).json({ message: "Some fields are empty" });
     }
 
@@ -236,11 +236,11 @@ const editProfile = async (req, res) => {
     const coverImage = await uploadOnCloudinary(coverImagePath);
 
   
-    const _id = "659ce3c6554e88c00cf45da8";
     const user = await User.findByIdAndUpdate(
       _id,
       {
         $set: {
+          fullName,
           profilePicture: profilePicture.url,
           coverImage: coverImage.url,
           bio,
@@ -261,6 +261,28 @@ const editProfile = async (req, res) => {
     res.status(400).json({ message: error });
   }
 };
+
+
+const profileData = async (req, res) => {
+  try {
+    const {_id} = req.body
+
+    const user = await User.findById(_id).select('-password -otp -updatedAt -email ')
+
+    if(!user) {
+      res.status(404).json(new ApiResponse(404, null, 'Unable to fetch the data'))
+    }
+
+    return res.status(200).json(new ApiResponse(200, user, 'Fetch successfully data of user'))
+
+  }catch (error) {
+    console.log(error)
+
+    res.status(400).json(error)
+  }
+
+}
+
 export {
   registerUser,
   loginUser,
@@ -268,4 +290,5 @@ export {
   verifyOtp,
   newPassword,
   editProfile,
+  profileData
 };

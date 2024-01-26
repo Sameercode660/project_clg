@@ -7,6 +7,11 @@ const commentSchema = mongoose.Schema({
         ref: 'User',
         required: true
     },
+    tweetId:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tweet',
+        required: true
+    },
     content: {
         type: String,
     },

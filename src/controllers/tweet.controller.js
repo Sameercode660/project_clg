@@ -94,11 +94,19 @@ const likeTweet = async (req, res) => {
       res.status(400).json({ message: "Unable to like the post" });
     }
 
+
     const data = {
       user,
       targetType,
       targetId,
     };
+
+    const isLiked = await Like.findOne({$and : [{user}, targetType]})
+
+    if(isLiked) {
+      await Like.findByIdAndDelete(isLiked._id)
+      return res.status(200).json({message: 'Like deleted successfully'})
+    }
     const response = await Like.create(data);
     await Tweet.updateOne(
       { _id: targetType },
@@ -138,11 +146,12 @@ const commentTweet = async (req, res) => {
       res.status(400).json({ message: "Body is empty" });
     }
 
-    const { user, content } = req.body;
+    const { user, content, tweetId } = req.body;
 
     const data = {
       user,
       content,
+      tweetId
     };
     const response = await Comment.create(data);
 
@@ -215,6 +224,57 @@ const fetchAllTweet = async (req, res) => {
   }
 };
 
+const fetchComment = async (req, res) => {
+    try {
+      if(!req.body) {
+        res.status(400).json('Body is empty')
+      }
+
+      const {tweetId} = req.body
+
+      const comments = await Comment.find({tweetId})
+
+      let mergedArray = []
+
+      // comments.forEach(async (comment) => {
+      //   const user = await User.findById({_id : comment.user})
+      //   if(user) {
+      //     const mergedObject = {
+      //       ...comment._doc,
+      //       userId: user._id,
+      //       fullName: user.fullName,
+      //       username: user.username,
+      //       profilePictue: user.profilePicture
+      //     }
+      //     mergedArray.push(mergedObject)
+      //     console.log(mergedArray)
+      //   }
+      // })
+
+      const commentPromises = comments.map(async (comment) => {
+        const user = await User.findById({_id: comment.user})
+
+        if(user) {
+          return {
+            ...comment._doc,
+            userId: user._id,
+            fullName: user.fullName,
+            username: user.username,
+            profilePicture: user.profilePicture
+          }
+        }
+      })
+
+      mergedArray = await Promise.all(commentPromises)
+
+      return res.status(200).json(new ApiResponse(200, mergedArray, 'comment fetched successfully'))
+
+    } catch (error) {
+      console.log(error)
+      res.status(400).json({message: 'Initial comment error'})
+    }
+}
+
 export {
   postTweet,
   fetchTweet,
@@ -223,4 +283,5 @@ export {
   commentTweet,
   bookmarksTweet,
   fetchAllTweet,
+  fetchComment,
 };

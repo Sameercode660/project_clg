@@ -16,7 +16,8 @@ import {
   fetchTweet,
   likeTweet,
   postTweet,
-  fetchAllTweet
+  fetchAllTweet,
+  fetchComment
 } from "../controllers/tweet.controller.js";
 
 const userRouter = Router();
@@ -57,6 +58,6 @@ userRouter.route("/like-fetch").post(fetchLike);
 userRouter.route("/comment-tweet").post(commentTweet);
 userRouter.route('/bookmark-tweet').post(bookmarksTweet)
 userRouter.route('/fetch-all-tweet').post(fetchAllTweet)
-
+userRouter.route('/comment-fetch').post(fetchComment)
 
 export { userRouter };

@@ -28,7 +28,7 @@ const nodeMailer = async (email) => {
         if(err) {
             console.log('Error is sending the mail',err)
         } else {
-            console.log('Email is send successfully : ', info)
+            console.log('Email is sent successfully : ', info)
         }
     })
 

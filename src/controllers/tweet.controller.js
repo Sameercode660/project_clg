@@ -5,6 +5,7 @@ import { Like } from "../models/like.model.js";
 import { Comment } from "../models/comment.model.js";
 import { Bookmark } from "../models/bookmark.model.js";
 import { User } from "../models/user.model.js";
+import { Follower } from "../models/follower.model.js";
 
 const postTweet = async (req, res) => {
   try {
@@ -94,27 +95,38 @@ const likeTweet = async (req, res) => {
       res.status(400).json({ message: "Unable to like the post" });
     }
 
-
     const data = {
       user,
       targetType,
       targetId,
     };
 
-    const isLiked = await Like.findOne({$and : [{user}, targetType]})
+    const isLiked = await Like.findOne({ $and: [{ user }, { targetType }] });
 
-    if(isLiked) {
-      await Like.findByIdAndDelete(isLiked._id)
-      return res.status(200).json({message: 'Like deleted successfully'})
+    if (isLiked) {
+      await Like.findByIdAndDelete(isLiked._id);
+      const totalLike = await Like.find({ targetType });
+      await Tweet.updateOne(
+        { _id: targetType },
+        { $pull: { likes: user }, $set: {} },
+        { new: true }
+      );
+      return res
+        .status(201)
+        .json({
+          message: "Like deleted successfully",
+          totalLike: totalLike.length,
+          toggle: false,
+        });
     }
-    const response = await Like.create(data);
+    await Like.create(data);
     await Tweet.updateOne(
       { _id: targetType },
-      {$push : {likes: user}, $set: {}},
-      {new: true}
-      );
-
-    res.status(200).json(new ApiResponse(200, response, "Like successfully"));
+      { $push: { likes: user }, $set: {} },
+      { new: true }
+    );
+    const totalLike = await Like.find({ targetType });
+    res.status(200).json({ totalLike: totalLike.length, toggle: true });
   } catch (error) {
     console.log(error);
     res.status(400).json({ message: "Initial error in like section" });
@@ -151,7 +163,7 @@ const commentTweet = async (req, res) => {
     const data = {
       user,
       content,
-      tweetId
+      tweetId,
     };
     const response = await Comment.create(data);
 
@@ -225,54 +237,367 @@ const fetchAllTweet = async (req, res) => {
 };
 
 const fetchComment = async (req, res) => {
-    try {
-      if(!req.body) {
-        res.status(400).json('Body is empty')
-      }
-
-      const {tweetId} = req.body
-
-      const comments = await Comment.find({tweetId})
-
-      let mergedArray = []
-
-      // comments.forEach(async (comment) => {
-      //   const user = await User.findById({_id : comment.user})
-      //   if(user) {
-      //     const mergedObject = {
-      //       ...comment._doc,
-      //       userId: user._id,
-      //       fullName: user.fullName,
-      //       username: user.username,
-      //       profilePictue: user.profilePicture
-      //     }
-      //     mergedArray.push(mergedObject)
-      //     console.log(mergedArray)
-      //   }
-      // })
-
-      const commentPromises = comments.map(async (comment) => {
-        const user = await User.findById({_id: comment.user})
-
-        if(user) {
-          return {
-            ...comment._doc,
-            userId: user._id,
-            fullName: user.fullName,
-            username: user.username,
-            profilePicture: user.profilePicture
-          }
-        }
-      })
-
-      mergedArray = await Promise.all(commentPromises)
-
-      return res.status(200).json(new ApiResponse(200, mergedArray, 'comment fetched successfully'))
-
-    } catch (error) {
-      console.log(error)
-      res.status(400).json({message: 'Initial comment error'})
+  try {
+    if (!req.body) {
+      res.status(400).json("Body is empty");
     }
+
+    const { tweetId } = req.body;
+
+    const comments = await Comment.find({ tweetId });
+
+    let mergedArray = [];
+
+    // comments.forEach(async (comment) => {
+    //   const user = await User.findById({_id : comment.user})
+    //   if(user) {
+    //     const mergedObject = {
+    //       ...comment._doc,
+    //       userId: user._id,
+    //       fullName: user.fullName,
+    //       username: user.username,
+    //       profilePictue: user.profilePicture
+    //     }
+    //     mergedArray.push(mergedObject)
+    //     console.log(mergedArray)
+    //   }
+    // })
+
+    const commentPromises = comments.map(async (comment) => {
+      const user = await User.findById({ _id: comment.user });
+
+      if (user) {
+        return {
+          ...comment._doc,
+          userId: user._id,
+          fullName: user.fullName,
+          username: user.username,
+          profilePicture: user.profilePicture,
+        };
+      }
+    });
+
+    mergedArray = await Promise.all(commentPromises);
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, mergedArray, "comment fetched successfully"));
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ message: "Initial comment error" });
+  }
+};
+
+const deletedTweet = async (req, res) => {
+  try {
+    const { _id, user } = req.body;
+
+    const response = await Tweet.deleteOne({ $and: [{ _id }, { user }] });
+
+    if (!response) {
+      res.status(400).json({ message: "Unable to delete the tweet" });
+    }
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, response, "Tweet deleted successfully"));
+  } catch (error) {
+    console.log(error);
+
+    res
+      .status(400)
+      .json({ message: "Error in executing the deleted function code" });
+  }
+};
+
+const fetchBookmarks = async (req, res) => {
+  try {
+    if (!req.body) {
+      res.status(400).json({ message: "Empty body is sent" });
+    }
+
+    const { userId } = req.body;
+
+    const bookmarks = await Bookmark.find({ userId });
+
+    const TweetIds = bookmarks.map((id) => id.tweetId);
+
+    const TweetsPromises = TweetIds.map(async (_id) => {
+      return await Tweet.findById(_id);
+    });
+
+    const TweetsData = await Promise.all(TweetsPromises);
+
+    const mergedArray = [];
+
+    const tweetAndUserDataPromises = TweetsData.map(async (tweet) => {
+      const user = await User.findById({ _id: tweet.user }).select(
+        "-password -otp"
+      );
+      if (user) {
+        return {
+          tweetId: tweet._id,
+          userId: user._id,
+          ...tweet._doc,
+          ...user._doc,
+        };
+      }
+    });
+
+    const tweetAndUserData = await Promise.all(tweetAndUserDataPromises);
+    res.send(tweetAndUserData);
+  } catch (error) {
+    console.log(error);
+    res
+      .status(401)
+      .json({
+        message:
+          "Unable to execute the code of fetchBookmarks code successfully",
+      });
+  }
+};
+
+const followUnfollowUser = async (req, res) => {
+
+  // 1. check for whether the body is empty or not 
+  // 2. check for each field seperately for accuracy
+  // 3. check for whether the follower has already followed a person
+  // 4. if found followed already logic for unfollow
+  // 5. if not found, logic for follow
+  if(!req.body) {
+    return res.status(400).json({message: 'Empty body is sent'})
+  }
+
+  const {followerID, followedID} = req.body
+
+
+
+  if(!followerID || !followedID) {
+    return res.status(400).json({message: 'Any field is empty'})
+  }
+
+  const data = {
+    followerID,
+    followedID
+  }
+
+  const checkFollower = await Follower.findOne({$and: [{followerID, followedID}]})
+
+  if(checkFollower) {
+    const response = await Follower.deleteOne({_id: checkFollower._id})
+    const followerUser = await User.updateOne(
+      {_id: followerID},
+      {$pull: {following: followedID}, $set: {}}, 
+      {new: true}
+    )
+
+    const followedUser = await User.updateOne(
+      {_id: followedID}, 
+      {$pull: {followers: followerID}, $set: {}}, 
+      {new: true}
+    )
+    return res.status(200).json({response, followedUser, followerUser, toggle: false})
+  }
+
+  const response = await Follower.create(data)
+
+  const follwerUser = await User.updateOne(
+    {_id: followerID},
+    {$push: {following: followedID}, $set: {}}, 
+    {new: true}
+  )
+
+  const followedUser = await User.updateOne(
+    {_id: followedID}, 
+    {$push: {followers: followerID}, $set: {}}, 
+    {new: true}
+  )
+
+  res.status(200).json({response, follwerUser, followedUser, toggle: true})
+};
+
+
+const checkFollwer = async (req, res) => {
+  try {
+    if(!req.body) {
+      return res.status(400).json({message: 'Body is sent empty'})
+    }
+
+    const {followerID, followedID} = req.body
+
+    if(!followerID || !followedID) {
+      return res.status(400).json({message: 'Any field is empty'})
+    }
+
+    const response = await Follower.findOne({$and : [{followerID, followedID}]})
+
+    if(response) {
+      return res.status(200).json({found: true})
+    }
+
+    res.status(200).json({found: false})
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({message: 'Error in executing the checkfollowers Code'})
+  }
+}
+
+// fetch user followers 
+// const userFollowers = async (req, res) => {
+//   try {
+//     //1. check body is empty or not
+//     //2. check for the user id
+//     // 3. fetch data based on userId in Follower model 
+//     // 4. then return the userId and follower Id and necessary data
+//     if(!req.body) {
+//       return res.status(400).json({message: 'Empty Body is send'})
+//     }
+//     // checking for userId
+//     const {userId} = req.body
+
+//     // if user id is not found , return a response of undefined
+//     if(!userId) {
+//       return res.status(400).json({message: 'userId is undefined'})
+//     }
+
+//     // fetching all the follower of  a particular user based on user id and stores as an array
+//     const allFollowerList = await Follower.find({followedID: userId})
+
+//     // seperating the follwer Id for fetching the data of each  follower1
+//     const allFollwersIds = allFollowerList.map((follower) => (follower.followerID))
+
+//     // fetching the data of each follower using map that creates an array of promises
+//     const followersDataPromises = allFollwersIds.map(async (follower) => {
+//       return await User.findOne({_id: follower}).select('-password -otp')
+//     })
+
+//     // Promise.all resolved each promise array, created by followerDataPromises
+//     const followerData = await Promise.all(followersDataPromises)
+
+//     // sending the response to the frontend, a follwerData which is an array of resolved promise that contains the necessary user informantion
+//     res.status(200).json(new ApiResponse(400, followerData, 'Fetch follower successfully'))
+
+//   } catch (error) {
+//     // logging the error catched by catched block
+//     console.log(error)
+//     // sending the responsse to the user that there is something wrong in try block
+//     return res.status(400).json({message: 'There is something wrong in userFollower try block'})
+//   }
+// }
+
+// const userFollowings = async (req, res) => {
+//   try {
+//     // algorithms
+//     // 1. Check whether the body is empty or not , if found empty then return a response of empty body found
+//     // 2. fetch the userId from the req.body
+//     // 3. check whether the userId is successfully fetched from req.body or not, if not found return response of not found
+//     // 4. fetch the data based on userId form follwer model as followerID
+//     // 5. create a separate array of followed Id
+//     // 6. fetch all the data of followed user and send that to the user(frontend)
+//     // checking whether the body is empty or not
+//     if(!req.body) {
+//       return res.status(400).json({message: 'Body is sent empty'})
+//     }
+
+//     // fetching the user id from req.body
+//     const {userId} = req.body
+
+//     // checking whether the req.body is fetched successfully or not
+//     if(!userId) {
+//       return res.status(400).json({message: 'userId is undedfined '})
+//     }
+
+//     // fetchig all the field where the user is a follower
+//     const allFollowedList = await Follower.find({followerID: userId})
+
+//     // fetching all the ids of the user which is follower by this user
+//     const allFollowedIds = allFollowedList.map((followed)=> (followed.followedID))
+
+//     // fetching the information from db of the followed user
+//     const allFollowedUserPromises = allFollowedIds.map(async (followedUserId) => {
+//       return await User.findOne({_id: followedUserId}).select('-password -otp')
+//     })
+
+//     // resolving all the promises of the followed user Data
+//     const followedUserData = await Promise.all(allFollowedUserPromises)
+
+//     // returning the resolve data 
+//     res.status(400).json(new ApiResponse(400, followedUserData, 'following sent successfully'))
+
+//   } catch (error) {
+//     // logging the error 
+//     console.log(error)
+//     // returning the response to the user that there is something wrong in the try block
+//     return res.status(400).json({message: 'There is something wrong the try block code'})
+//   }
+// }
+
+const userFollowers = async (req, res) => {
+  try {
+    if(!req.body) {
+      return res.status(400).json({message: 'Empty body is sent'})
+    }
+
+    const {userId} = req.body
+
+    if(!userId) {
+      return res.status(400).json({message: 'User id is undefind'})
+    }
+
+    const user = await User.findOne({_id: userId})
+
+    if(!user) {
+      return res.status(500).json({message: 'Unable to fetch the data'})
+    }
+
+    if(user.followers.length == 0) {
+      return res.status(200).json({toggle: false})
+    }
+
+    const userDataPromises = user.followers.map(async (follower) => {
+      return await User.findOne({_id: follower}).select('-password -otp')
+    })
+
+    const userData = await Promise.all(userDataPromises)
+    res.status(400).json({data : userData, message: 'fetched successfully', toggle: true })
+  } catch (error) {
+    console.log(error)
+    return res.status(400).json({message: 'Something went wrong'})
+  }
+}
+//fetch user followings 
+const userFollowings = async (req, res) => {
+  try {
+     if(!req.body) {
+      return res.status(400).json({message: 'Empty body is sent'})
+    }
+
+    const {userId} = req.body
+
+    if(!userId) {
+      return res.status(400).json({message: 'User id is undefind'})
+    }
+
+    const user = await User.findOne({_id: userId})
+
+    if(!user) {
+      return res.status(500).json({message: 'Unable to fetch the data'})
+    }
+
+    if(user.following.length == 0) {
+      return res.status(200).json({toggle: false})
+    }
+
+    const userDataPromises = user.following.map(async (following) => {
+      return await User.findOne({_id: following}).select('-password -otp')
+    })
+
+    const userData = await Promise.all(userDataPromises)
+    res.status(400).json({data : userData, message: 'fetched successfully', toggle: true })
+  } catch (error) {
+    console.log(error)
+    return res.status(400).json({message: 'There is something wrong in try block of user followings'})
+  }
 }
 
 export {
@@ -284,4 +609,10 @@ export {
   bookmarksTweet,
   fetchAllTweet,
   fetchComment,
+  deletedTweet,
+  fetchBookmarks,
+  followUnfollowUser,
+  checkFollwer,
+  userFollowers,
+  userFollowings,
 };

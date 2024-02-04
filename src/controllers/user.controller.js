@@ -270,7 +270,7 @@ const profileData = async (req, res) => {
     const user = await User.findById(_id).select('-password -otp -updatedAt -email ')
 
     if(!user) {
-      res.status(404).json(new ApiResponse(404, null, 'Unable to fetch the data'))
+      return res.status(404).json(new ApiResponse(404, null, 'Unable to fetch the data'))
     }
 
     return res.status(200).json(new ApiResponse(200, user, 'Fetch successfully data of user'))

@@ -23,7 +23,9 @@ import {
   followUnfollowUser,
   checkFollwer,
   userFollowers,
-  userFollowings
+  userFollowings,
+  fetchProfilePicture,
+  fetchNotification,
 } from "../controllers/tweet.controller.js";
 
 const userRouter = Router();
@@ -71,5 +73,6 @@ userRouter.route("/follow-user").post(followUnfollowUser);
 userRouter.route("/check-follower").post(checkFollwer);
 userRouter.route('/fetch-follower').post(userFollowers);
 userRouter.route('/fetch-following').post(userFollowings);
-
+userRouter.route('/fetch-user-profile').post(fetchProfilePicture);
+userRouter.route('/fetch-notifications').post(fetchNotification);
 export { userRouter };

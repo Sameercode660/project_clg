@@ -6,6 +6,7 @@ import { Comment } from "../models/comment.model.js";
 import { Bookmark } from "../models/bookmark.model.js";
 import { User } from "../models/user.model.js";
 import { Follower } from "../models/follower.model.js";
+import {Notification} from '../models/notification.model.js'
 
 const postTweet = async (req, res) => {
   try {
@@ -357,6 +358,8 @@ const fetchBookmarks = async (req, res) => {
   }
 };
 
+
+
 const followUnfollowUser = async (req, res) => {
 
   // 1. check for whether the body is empty or not 
@@ -413,7 +416,16 @@ const followUnfollowUser = async (req, res) => {
     {new: true}
   )
 
-  res.status(200).json({response, follwerUser, followedUser, toggle: true})
+  // creating and sending the notification to the user 
+  const notificationData = {
+    senderID: followerID,
+    recieverID: followedID,
+    notificationType: 'new follower', 
+    content: 'New follower is added',
+  }
+  const notification = await Notification.create(notificationData)
+
+  res.status(200).json({response, follwerUser, followedUser, notification, toggle: true})
 };
 
 
@@ -551,7 +563,7 @@ const userFollowers = async (req, res) => {
     }
 
     if(user.followers.length == 0) {
-      return res.status(200).json({toggle: false})
+      return res.status(200).json(new ApiResponse(200, [], 'Follower array is empty'))
     }
 
     const userDataPromises = user.followers.map(async (follower) => {
@@ -559,7 +571,7 @@ const userFollowers = async (req, res) => {
     })
 
     const userData = await Promise.all(userDataPromises)
-    res.status(400).json({data : userData, message: 'fetched successfully', toggle: true })
+    res.status(200).json({data : userData, message: 'fetched successfully', toggle: true })
   } catch (error) {
     console.log(error)
     return res.status(400).json({message: 'Something went wrong'})
@@ -585,7 +597,7 @@ const userFollowings = async (req, res) => {
     }
 
     if(user.following.length == 0) {
-      return res.status(200).json({toggle: false})
+      return res.status(200).json(new ApiResponse(200, [], 'No following is available'))
     }
 
     const userDataPromises = user.following.map(async (following) => {
@@ -593,13 +605,67 @@ const userFollowings = async (req, res) => {
     })
 
     const userData = await Promise.all(userDataPromises)
-    res.status(400).json({data : userData, message: 'fetched successfully', toggle: true })
+    res.status(200).json({data : userData, message: 'fetched successfully', toggle: true })
   } catch (error) {
     console.log(error)
     return res.status(400).json({message: 'There is something wrong in try block of user followings'})
   }
 }
 
+const fetchProfilePicture = async (req, res) => {
+  try {
+    if(!req.body) {
+      res.status(400).json({message: 'empty body is sent'})
+    }
+
+    const {_id} = req.body
+
+    const response = await User.findById(_id, {profilePicture: 1 })
+
+    if(!response) {
+      res.status(400).json({message: 'Unable to find the user'})
+    }
+    res.status(200).json({data: response})
+
+
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({message: 'There is something wrong with fetchProfilePicture code'})
+  }
+}
+
+const fetchNotification = async (req, res) => {
+  try {
+    if(!req.body) {
+      return res.status(400).json({message: 'Empty body is sent'})
+    }
+
+    const {recieverID} = req.body
+
+    if(!recieverID) {
+      return res.status(400).json({message: 'recieverID is not found'})
+    }
+
+    const notifications = await Notification.find({recieverID})
+
+    const notificationsDataPromises= notifications.map(async (notification) => {
+      const senderUserDAta = await User.findOne({_id: notification.senderID}).select('-password -otp')
+      return {
+        notificationID: notification._id,
+        ...notification._doc,
+        ...senderUserDAta._doc
+      }
+    })
+  
+    const notificationData = await Promise.all(notificationsDataPromises)
+
+    
+    res.status(200).json({notificationData})
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({message: 'there is something wrong with the notificatoin try block'})
+  }
+}
 export {
   postTweet,
   fetchTweet,
@@ -615,4 +681,6 @@ export {
   checkFollwer,
   userFollowers,
   userFollowings,
+  fetchProfilePicture,
+  fetchNotification
 };

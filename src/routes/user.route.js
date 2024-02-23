@@ -26,7 +26,12 @@ import {
   userFollowings,
   fetchProfilePicture,
   fetchNotification,
+  checkTweetLikes,
 } from "../controllers/tweet.controller.js";
+import { userInfoForChat } from "../controllers/messenger.controller.js";
+import { createChat } from "../controllers/chat.controller.js";
+import { getChat } from "../controllers/chat.controller.js";
+import { deleteChat } from "../controllers/chat.controller.js";
 
 const userRouter = Router();
 
@@ -75,4 +80,7 @@ userRouter.route('/fetch-follower').post(userFollowers);
 userRouter.route('/fetch-following').post(userFollowings);
 userRouter.route('/fetch-user-profile').post(fetchProfilePicture);
 userRouter.route('/fetch-notifications').post(fetchNotification);
+userRouter.route('/check-tweet-likes').post(checkTweetLikes)
+userRouter.route('/user-chat-info').post(userInfoForChat)
+userRouter.route('/create-chat').post(createChat)
 export { userRouter };

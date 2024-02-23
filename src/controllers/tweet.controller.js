@@ -666,6 +666,32 @@ const fetchNotification = async (req, res) => {
     res.status(400).json({message: 'there is something wrong with the notificatoin try block'})
   }
 }
+
+
+const checkTweetLikes = async (req, res) => {
+  try {
+    if(!req.body) {
+      return res.status(400).json({message: 'Body is empty'})
+    }
+
+    const {user, targetType,  targetId} = req.body
+
+    if(!user || !targetType || !targetId) {
+      return res.status(400).json({message: 'Any one or more fields are empty'})
+    }
+
+    const response = await Like.findOne({$and: [{user}, {targetType}, {targetId}]})
+
+    if(!response) {
+      return res.status(200).json({Liked: false})
+    }
+
+    return res.status(200).json({Liked: true})
+  } catch (error) {
+    console.log('Error in cheching the Tweets like')
+    return res.status(400).json({message: 'Unable to run the code of checkTweetLikes properly'})
+  }
+}
 export {
   postTweet,
   fetchTweet,
@@ -682,5 +708,6 @@ export {
   userFollowers,
   userFollowings,
   fetchProfilePicture,
-  fetchNotification
+  fetchNotification,
+  checkTweetLikes
 };

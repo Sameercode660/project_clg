@@ -83,4 +83,7 @@ userRouter.route('/fetch-notifications').post(fetchNotification);
 userRouter.route('/check-tweet-likes').post(checkTweetLikes)
 userRouter.route('/user-chat-info').post(userInfoForChat)
 userRouter.route('/create-chat').post(createChat)
+userRouter.route('/get-chat').post(getChat)
+userRouter.route('/delete-chat').post(deleteChat)
+
 export { userRouter };

@@ -77,7 +77,7 @@ const deleteChat = AsyncHandler(async (req, res)=> {
             return res.status(400).json({message: 'chat is not found'})
         }
 
-        return res.status(400).json(new ApiResponse(200, deleteChat, 'chat deleted successfully'))
+        return res.status(200).json(new ApiResponse(200, deleteChat, 'chat deleted successfully'))
     } catch (error) {
         console.log(error)
         return res.status(400).json({message: 'unable to run the code of deleteChat'})

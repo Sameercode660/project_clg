@@ -32,6 +32,7 @@ import { userInfoForChat } from "../controllers/messenger.controller.js";
 import { createChat } from "../controllers/chat.controller.js";
 import { getChat } from "../controllers/chat.controller.js";
 import { deleteChat } from "../controllers/chat.controller.js";
+import { sendMessage, getMessage, deleteMessage} from "../controllers/messenger.controller.js"
 
 const userRouter = Router();
 
@@ -85,5 +86,8 @@ userRouter.route('/user-chat-info').post(userInfoForChat)
 userRouter.route('/create-chat').post(createChat)
 userRouter.route('/get-chat').post(getChat)
 userRouter.route('/delete-chat').post(deleteChat)
+userRouter.route('/send-message').post(sendMessage)
+userRouter.route('/get-message').post(getMessage)
+userRouter.route('/delete-message').post(deleteMessage)
 
 export { userRouter };

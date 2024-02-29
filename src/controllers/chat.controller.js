@@ -12,9 +12,10 @@ const createChat = AsyncHandler(async (req, res)=> {
         if(!senderId || !recieverId) {
             return res.status(400).json('senderId or recieverId is missing')
         }
-        const isChatExist = await Chat.findOne({$and: [{senderId}, {recieverId}]})
+        const isChatExist1 = await Chat.findOne({$and: [{senderId}, {recieverId}]})
+        const isChatExist12 = await Chat.findOne({$and: [{senderId: recieverId}, {recieverId: senderId}]})
 
-        if(isChatExist) {
+        if(isChatExist1 || isChatExist12) {
             return res.status(200).json({message: 'Chat already created'})
         }
         const response = await Chat.create({senderId, recieverId})
@@ -36,6 +37,24 @@ const getChat = AsyncHandler(async (req, res)=> {
             return res.status(400).json({message: 'recieverId is not found'})
         }
 
+        // first checking the reciever as as sender 
+        const sentChat = await Chat.find({senderId: recieverId})
+        if(sentChat.length) {
+            let sentChatDataPromises = sentChat.map(async (chat) => {
+                const user = await User.findOne({_id: chat.recieverId})
+
+                return {
+                    userId: user._id,
+                    chatId: chat._id,
+                    ...chat._doc,
+                    ...user._doc
+                }
+            })
+
+            const sentChatData = await Promise.all(sentChatDataPromises)
+            return res.status(200).json(new ApiResponse(200, sentChatData, 'fetched data successfully'))
+        }
+
         const chats = await Chat.find({recieverId})
 
         if(!chats) { 
@@ -55,7 +74,6 @@ const getChat = AsyncHandler(async (req, res)=> {
 
         let chatData = await Promise.all(chatDataPromises)
 
-    
         res.status(200).json(new ApiResponse(200, chatData, 'chats fetched successfully'))
 
     } catch (error) {
@@ -63,6 +81,9 @@ const getChat = AsyncHandler(async (req, res)=> {
         return res.status(400).json({message: 'There is some wrong in getChat function'})
     }
 })
+
+ 
+
 const deleteChat = AsyncHandler(async (req, res)=> {
     try {
         const {chatId} = req.body

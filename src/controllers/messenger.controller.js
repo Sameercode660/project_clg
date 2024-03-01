@@ -32,7 +32,7 @@ const sendMessage = asyncHandler(async (req, res) => {
             return res.status(400).json({message: 'Any one or more fields are empty'})
         }
 
-        const messageResponse = await Message.create({chatId, senderId, recieverId, message})
+        const messageResponse = await(await Message.create({chatId, senderId, recieverId, message})).populate('senderId', '_id fullName, profilePicture')
 
         if(!messageResponse) {
             return res.status(500).json({message: 'Internal server Error: Unable to create the message'})
@@ -54,7 +54,7 @@ const getMessage = asyncHandler(async (req, res) => {
             return res.status(400).json({message: 'Chat is not found' })
         }
 
-        const messages = await Message.find({chatId}).populate('senderId', 'fullName profilePicture ')
+        const messages = await Message.find({chatId}).populate('senderId', '_id profilePicture ')
 
         if(!messages) {
             return res.status(200).json(new ApiResponse(200, [], 'messages are not found'))

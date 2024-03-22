@@ -6,7 +6,7 @@ import { Comment } from "../models/comment.model.js";
 import { Bookmark } from "../models/bookmark.model.js";
 import { User } from "../models/user.model.js";
 import { Follower } from "../models/follower.model.js";
-import {Notification} from '../models/notification.model.js'
+import { Notification } from "../models/notification.model.js";
 
 const postTweet = async (req, res) => {
   try {
@@ -112,13 +112,11 @@ const likeTweet = async (req, res) => {
         { $pull: { likes: user }, $set: {} },
         { new: true }
       );
-      return res
-        .status(201)
-        .json({
-          message: "Like deleted successfully",
-          totalLike: totalLike.length,
-          toggle: false,
-        });
+      return res.status(201).json({
+        message: "Like deleted successfully",
+        totalLike: totalLike.length,
+        toggle: false,
+      });
     }
     await Like.create(data);
     await Tweet.updateOne(
@@ -289,27 +287,27 @@ const fetchComment = async (req, res) => {
   }
 };
 
-const deletedTweet = async (req, res) => {
-  try {
-    const { _id, user } = req.body;
+// const deletedTweet = async (req, res) => {
+//   try {
+//     const { _id, user } = req.body;
 
-    const response = await Tweet.deleteOne({ $and: [{ _id }, { user }] });
+//     const response = await Tweet.deleteOne({ $and: [{ _id }, { user }] });
 
-    if (!response) {
-      res.status(400).json({ message: "Unable to delete the tweet" });
-    }
+//     if (!response) {
+//       res.status(400).json({ message: "Unable to delete the tweet" });
+//     }
 
-    res
-      .status(200)
-      .json(new ApiResponse(200, response, "Tweet deleted successfully"));
-  } catch (error) {
-    console.log(error);
+//     res
+//       .status(200)
+//       .json(new ApiResponse(200, response, "Tweet deleted successfully"));
+//   } catch (error) {
+//     console.log(error);
 
-    res
-      .status(400)
-      .json({ message: "Error in executing the deleted function code" });
-  }
-};
+//     res
+//       .status(400)
+//       .json({ message: "Error in executing the deleted function code" });
+//   }
+// };
 
 const fetchBookmarks = async (req, res) => {
   try {
@@ -349,117 +347,118 @@ const fetchBookmarks = async (req, res) => {
     res.send(tweetAndUserData);
   } catch (error) {
     console.log(error);
-    res
-      .status(401)
-      .json({
-        message:
-          "Unable to execute the code of fetchBookmarks code successfully",
-      });
+    res.status(401).json({
+      message: "Unable to execute the code of fetchBookmarks code successfully",
+    });
   }
 };
 
-
-
 const followUnfollowUser = async (req, res) => {
-
-  // 1. check for whether the body is empty or not 
+  // 1. check for whether the body is empty or not
   // 2. check for each field seperately for accuracy
   // 3. check for whether the follower has already followed a person
   // 4. if found followed already logic for unfollow
   // 5. if not found, logic for follow
-  if(!req.body) {
-    return res.status(400).json({message: 'Empty body is sent'})
+  if (!req.body) {
+    return res.status(400).json({ message: "Empty body is sent" });
   }
 
-  const {followerID, followedID} = req.body
+  const { followerID, followedID } = req.body;
 
-
-
-  if(!followerID || !followedID) {
-    return res.status(400).json({message: 'Any field is empty'})
+  if (!followerID || !followedID) {
+    return res.status(400).json({ message: "Any field is empty" });
   }
 
   const data = {
     followerID,
-    followedID
-  }
+    followedID,
+  };
 
-  const checkFollower = await Follower.findOne({$and: [{followerID, followedID}]})
+  const checkFollower = await Follower.findOne({
+    $and: [{ followerID, followedID }],
+  });
 
-  if(checkFollower) {
-    const response = await Follower.deleteOne({_id: checkFollower._id})
+  if (checkFollower) {
+    const response = await Follower.deleteOne({ _id: checkFollower._id });
     const followerUser = await User.updateOne(
-      {_id: followerID},
-      {$pull: {following: followedID}, $set: {}}, 
-      {new: true}
-    )
+      { _id: followerID },
+      { $pull: { following: followedID }, $set: {} },
+      { new: true }
+    );
 
     const followedUser = await User.updateOne(
-      {_id: followedID}, 
-      {$pull: {followers: followerID}, $set: {}}, 
-      {new: true}
-    )
-    return res.status(200).json({response, followedUser, followerUser, toggle: false})
+      { _id: followedID },
+      { $pull: { followers: followerID }, $set: {} },
+      { new: true }
+    );
+    return res
+      .status(200)
+      .json({ response, followedUser, followerUser, toggle: false });
   }
 
-  const response = await Follower.create(data)
+  const response = await Follower.create(data);
 
   const follwerUser = await User.updateOne(
-    {_id: followerID},
-    {$push: {following: followedID}, $set: {}}, 
-    {new: true}
-  )
+    { _id: followerID },
+    { $push: { following: followedID }, $set: {} },
+    { new: true }
+  );
 
   const followedUser = await User.updateOne(
-    {_id: followedID}, 
-    {$push: {followers: followerID}, $set: {}}, 
-    {new: true}
-  )
+    { _id: followedID },
+    { $push: { followers: followerID }, $set: {} },
+    { new: true }
+  );
 
-  // creating and sending the notification to the user 
+  // creating and sending the notification to the user
   const notificationData = {
     senderID: followerID,
     recieverID: followedID,
-    notificationType: 'new follower', 
-    content: 'New follower is added',
-  }
-  const notification = await Notification.create(notificationData)
+    notificationType: "new follower",
+    content: "New follower is added",
+  };
+  const notification = await Notification.create(notificationData);
 
-  res.status(200).json({response, follwerUser, followedUser, notification, toggle: true})
+  res
+    .status(200)
+    .json({ response, follwerUser, followedUser, notification, toggle: true });
 };
-
 
 const checkFollwer = async (req, res) => {
   try {
-    if(!req.body) {
-      return res.status(400).json({message: 'Body is sent empty'})
+    if (!req.body) {
+      return res.status(400).json({ message: "Body is sent empty" });
     }
 
-    const {followerID, followedID} = req.body
+    const { followerID, followedID } = req.body;
 
-    if(!followerID || !followedID) {
-      return res.status(400).json({message: 'Any field is empty'})
+    if (!followerID || !followedID) {
+      return res.status(400).json({ message: "Any field is empty" });
     }
 
-    const response = await Follower.findOne({$and : [{followerID, followedID}]})
+    const response = await Follower.findOne({
+      $and: [{ followerID, followedID }],
+    });
 
-    if(response) {
-      return res.status(200).json({found: true})
+    if (response) {
+      return res.status(200).json({ found: true });
     }
 
-    res.status(200).json({found: false})
+    res.status(200).json({ found: false });
   } catch (error) {
-    console.log(error)
-    res.status(400).json({message: 'Error in executing the checkfollowers Code'})
+    console.log(error);
+    res
+      .status(400)
+      .json({ message: "Error in executing the checkfollowers Code" });
   }
-}
+};
 
-// fetch user followers 
+// fetch user followers
 // const userFollowers = async (req, res) => {
 //   try {
 //     //1. check body is empty or not
 //     //2. check for the user id
-//     // 3. fetch data based on userId in Follower model 
+//     // 3. fetch data based on userId in Follower model
 //     // 4. then return the userId and follower Id and necessary data
 //     if(!req.body) {
 //       return res.status(400).json({message: 'Empty Body is send'})
@@ -533,11 +532,11 @@ const checkFollwer = async (req, res) => {
 //     // resolving all the promises of the followed user Data
 //     const followedUserData = await Promise.all(allFollowedUserPromises)
 
-//     // returning the resolve data 
+//     // returning the resolve data
 //     res.status(400).json(new ApiResponse(400, followedUserData, 'following sent successfully'))
 
 //   } catch (error) {
-//     // logging the error 
+//     // logging the error
 //     console.log(error)
 //     // returning the response to the user that there is something wrong in the try block
 //     return res.status(400).json({message: 'There is something wrong the try block code'})
@@ -546,153 +545,266 @@ const checkFollwer = async (req, res) => {
 
 const userFollowers = async (req, res) => {
   try {
-    if(!req.body) {
-      return res.status(400).json({message: 'Empty body is sent'})
+    if (!req.body) {
+      return res.status(400).json({ message: "Empty body is sent" });
     }
 
-    const {userId} = req.body
+    const { userId } = req.body;
 
-    if(!userId) {
-      return res.status(400).json({message: 'User id is undefind'})
+    if (!userId) {
+      return res.status(400).json({ message: "User id is undefind" });
     }
 
-    const user = await User.findOne({_id: userId})
+    const user = await User.findOne({ _id: userId });
 
-    if(!user) {
-      return res.status(500).json({message: 'Unable to fetch the data'})
+    if (!user) {
+      return res.status(500).json({ message: "Unable to fetch the data" });
     }
 
-    if(user.followers.length == 0) {
-      return res.status(200).json(new ApiResponse(200, [], 'Follower array is empty'))
+    if (user.followers.length == 0) {
+      return res
+        .status(200)
+        .json(new ApiResponse(200, [], "Follower array is empty"));
     }
 
     const userDataPromises = user.followers.map(async (follower) => {
-      return await User.findOne({_id: follower}).select('-password -otp')
-    })
+      return await User.findOne({ _id: follower }).select("-password -otp");
+    });
 
-    const userData = await Promise.all(userDataPromises)
-    res.status(200).json({data : userData, message: 'fetched successfully', toggle: true })
+    const userData = await Promise.all(userDataPromises);
+    res
+      .status(200)
+      .json({ data: userData, message: "fetched successfully", toggle: true });
   } catch (error) {
-    console.log(error)
-    return res.status(400).json({message: 'Something went wrong'})
+    console.log(error);
+    return res.status(400).json({ message: "Something went wrong" });
   }
-}
-//fetch user followings 
+};
+//fetch user followings
 const userFollowings = async (req, res) => {
   try {
-     if(!req.body) {
-      return res.status(400).json({message: 'Empty body is sent'})
+    if (!req.body) {
+      return res.status(400).json({ message: "Empty body is sent" });
     }
 
-    const {userId} = req.body
+    const { userId } = req.body;
 
-    if(!userId) {
-      return res.status(400).json({message: 'User id is undefind'})
+    if (!userId) {
+      return res.status(400).json({ message: "User id is undefind" });
     }
 
-    const user = await User.findOne({_id: userId})
+    const user = await User.findOne({ _id: userId });
 
-    if(!user) {
-      return res.status(500).json({message: 'Unable to fetch the data'})
+    if (!user) {
+      return res.status(500).json({ message: "Unable to fetch the data" });
     }
 
-    if(user.following.length == 0) {
-      return res.status(200).json(new ApiResponse(200, [], 'No following is available'))
+    if (user.following.length == 0) {
+      return res
+        .status(200)
+        .json(new ApiResponse(200, [], "No following is available"));
     }
 
     const userDataPromises = user.following.map(async (following) => {
-      return await User.findOne({_id: following}).select('-password -otp')
-    })
+      return await User.findOne({ _id: following }).select("-password -otp");
+    });
 
-    const userData = await Promise.all(userDataPromises)
-    res.status(200).json({data : userData, message: 'fetched successfully', toggle: true })
+    const userData = await Promise.all(userDataPromises);
+    res
+      .status(200)
+      .json({ data: userData, message: "fetched successfully", toggle: true });
   } catch (error) {
-    console.log(error)
-    return res.status(400).json({message: 'There is something wrong in try block of user followings'})
+    console.log(error);
+    return res.status(400).json({
+      message: "There is something wrong in try block of user followings",
+    });
   }
-}
+};
 
 const fetchProfilePicture = async (req, res) => {
   try {
-    if(!req.body) {
-      res.status(400).json({message: 'empty body is sent'})
+    if (!req.body) {
+      res.status(400).json({ message: "empty body is sent" });
     }
 
-    const {_id} = req.body
+    const { _id } = req.body;
 
-    const response = await User.findById(_id, {profilePicture: 1 })
+    const response = await User.findById(_id, { profilePicture: 1 });
 
-    if(!response) {
-      res.status(400).json({message: 'Unable to find the user'})
+    if (!response) {
+      res.status(400).json({ message: "Unable to find the user" });
     }
-    res.status(200).json({data: response})
-
-
+    res.status(200).json({ data: response });
   } catch (error) {
-    console.log(error)
-    res.status(400).json({message: 'There is something wrong with fetchProfilePicture code'})
+    console.log(error);
+    res.status(400).json({
+      message: "There is something wrong with fetchProfilePicture code",
+    });
   }
-}
+};
 
 const fetchNotification = async (req, res) => {
   try {
-    if(!req.body) {
-      return res.status(400).json({message: 'Empty body is sent'})
+    if (!req.body) {
+      return res.status(400).json({ message: "Empty body is sent" });
     }
 
-    const {recieverID} = req.body
+    const { recieverID } = req.body;
 
-    if(!recieverID) {
-      return res.status(400).json({message: 'recieverID is not found'})
+    if (!recieverID) {
+      return res.status(400).json({ message: "recieverID is not found" });
     }
 
-    const notifications = await Notification.find({recieverID})
+    const notifications = await Notification.find({ recieverID });
 
-    const notificationsDataPromises= notifications.map(async (notification) => {
-      const senderUserDAta = await User.findOne({_id: notification.senderID}).select('-password -otp')
-      return {
-        notificationID: notification._id,
-        ...notification._doc,
-        ...senderUserDAta._doc
+    const notificationsDataPromises = notifications.map(
+      async (notification) => {
+        const senderUserDAta = await User.findOne({
+          _id: notification.senderID,
+        }).select("-password -otp");
+        return {
+          notificationID: notification._id,
+          ...notification._doc,
+          ...senderUserDAta._doc,
+        };
       }
-    })
-  
-    const notificationData = await Promise.all(notificationsDataPromises)
+    );
 
-    
-    res.status(200).json({notificationData})
+    const notificationData = await Promise.all(notificationsDataPromises);
+
+    res.status(200).json({ notificationData });
   } catch (error) {
-    console.log(error)
-    res.status(400).json({message: 'there is something wrong with the notificatoin try block'})
+    console.log(error);
+    res.status(400).json({
+      message: "there is something wrong with the notificatoin try block",
+    });
   }
-}
-
+};
 
 const checkTweetLikes = async (req, res) => {
   try {
-    if(!req.body) {
-      return res.status(400).json({message: 'Body is empty'})
+    if (!req.body) {
+      return res.status(400).json({ message: "Body is empty" });
     }
 
-    const {user, targetType,  targetId} = req.body
+    const { user, targetType, targetId } = req.body;
 
-    if(!user || !targetType || !targetId) {
-      return res.status(400).json({message: 'Any one or more fields are empty'})
+    if (!user || !targetType || !targetId) {
+      return res
+        .status(400)
+        .json({ message: "Any one or more fields are empty" });
     }
 
-    const response = await Like.findOne({$and: [{user}, {targetType}, {targetId}]})
+    const response = await Like.findOne({
+      $and: [{ user }, { targetType }, { targetId }],
+    });
 
-    if(!response) {
-      return res.status(200).json({Liked: false})
+    if (!response) {
+      return res.status(200).json({ Liked: false });
     }
 
-    return res.status(200).json({Liked: true})
+    return res.status(200).json({ Liked: true });
   } catch (error) {
-    console.log('Error in cheching the Tweets like')
-    return res.status(400).json({message: 'Unable to run the code of checkTweetLikes properly'})
+    console.log("Error in cheching the Tweets like");
+    return res
+      .status(400)
+      .json({ message: "Unable to run the code of checkTweetLikes properly" });
+  }
+};
+
+const deleteTweet = async (req, res) => {
+  try {
+    const { tweetId } = req.body;
+
+    if (!tweetId) {
+      return res.status(400).json({ message: "tweet id is not found" });
+    }
+
+    const tweetDeleteResponse = await Tweet.deleteOne({ _id: tweetId });
+
+    if (!tweetDeleteResponse) {
+      return res.status(400).json({
+        message: "unable to delete the tweet or not found",
+        status: false,
+      });
+    }
+
+    return res.status(200).json({ deleteTweet, status: true });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "unable to run the code for deleteTweet controller" });
+  }
+};
+
+// update tweet controller
+const updateTweet = async (req, res) => {
+  try {
+    const { tweetId, content } = req.body;
+
+    const mediaFilePath = req.files.media[0].path;
+
+    if (!tweetId) {
+      return res.status(400).json({ message: "TweetId is not found" });
+    }
+
+    if (!content || !mediaFilePath) {
+      return res
+        .status(400)
+        .json({ message: "file path and content is missing" });
+    }
+
+    const fileUrl = await uploadOnCloudinary(mediaFilePath);
+
+    console.log(fileUrl)
+    const tweetUpdateResponse = await Tweet.updateOne(
+      { _id: tweetId },
+      {
+        content,
+        media: fileUrl.url,
+      },
+      { new: true }
+    );
+
+    if(!tweetUpdateResponse) {
+      return res.status(400).json({message: 'Unable to update the tweet'})
+    }
+
+    return res.status(200).json(new ApiResponse(200, tweetUpdateResponse, 'successfully updated the tweet'))
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "unable to run the code for deleteTweet controller" });
+  }
+};
+
+const fetchSingleTweet = async( req, res) => {
+  try {
+    const {tweetId} = req.body
+
+    if(!tweetId) {
+      return res.status(400).json({message: 'TweetId is not found'})
+    }
+
+    const tweetData = await Tweet.findOne({_id: tweetId})
+
+    if(!tweetData) {
+      return res.status(400).json({message: 'Tweet is not found in db'})
+    }
+
+    return res.status(200).json(new ApiResponse(200, tweetData, 'tweet Fetched successfully'))
+
+  } catch (error) {
+    console.log(error)
+    return res.status(400).json({message: 'unable to run the fetch single tweet'})
   }
 }
 export {
+  fetchSingleTweet,
+  updateTweet,
+  deleteTweet,
   postTweet,
   fetchTweet,
   likeTweet,
@@ -701,7 +813,6 @@ export {
   bookmarksTweet,
   fetchAllTweet,
   fetchComment,
-  deletedTweet,
   fetchBookmarks,
   followUnfollowUser,
   checkFollwer,
@@ -709,5 +820,5 @@ export {
   userFollowings,
   fetchProfilePicture,
   fetchNotification,
-  checkTweetLikes
+  checkTweetLikes,
 };

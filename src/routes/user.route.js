@@ -18,7 +18,6 @@ import {
   postTweet,
   fetchAllTweet,
   fetchComment,
-  deletedTweet,
   fetchBookmarks,
   followUnfollowUser,
   checkFollwer,
@@ -27,12 +26,19 @@ import {
   fetchProfilePicture,
   fetchNotification,
   checkTweetLikes,
+  deleteTweet,
+  updateTweet,
+  fetchSingleTweet,
 } from "../controllers/tweet.controller.js";
 import { userInfoForChat } from "../controllers/messenger.controller.js";
 import { createChat } from "../controllers/chat.controller.js";
 import { getChat } from "../controllers/chat.controller.js";
 import { deleteChat } from "../controllers/chat.controller.js";
-import { sendMessage, getMessage, deleteMessage} from "../controllers/messenger.controller.js"
+import {
+  sendMessage,
+  getMessage,
+  deleteMessage,
+} from "../controllers/messenger.controller.js";
 
 const userRouter = Router();
 
@@ -73,21 +79,31 @@ userRouter.route("/comment-tweet").post(commentTweet);
 userRouter.route("/bookmark-tweet").post(bookmarksTweet);
 userRouter.route("/fetch-all-tweet").post(fetchAllTweet);
 userRouter.route("/comment-fetch").post(fetchComment);
-userRouter.route("/delete-tweet").post(deletedTweet);
+// userRouter.route("/delete-tweet").post(deletedTweet);
 userRouter.route("/fetch-bookmark").post(fetchBookmarks);
 userRouter.route("/follow-user").post(followUnfollowUser);
 userRouter.route("/check-follower").post(checkFollwer);
-userRouter.route('/fetch-follower').post(userFollowers);
-userRouter.route('/fetch-following').post(userFollowings);
-userRouter.route('/fetch-user-profile').post(fetchProfilePicture);
-userRouter.route('/fetch-notifications').post(fetchNotification);
-userRouter.route('/check-tweet-likes').post(checkTweetLikes)
-userRouter.route('/user-chat-info').post(userInfoForChat)
-userRouter.route('/create-chat').post(createChat)
-userRouter.route('/get-chat').post(getChat)
-userRouter.route('/delete-chat').post(deleteChat)
-userRouter.route('/send-message').post(sendMessage)
-userRouter.route('/get-message').post(getMessage)
-userRouter.route('/delete-message').post(deleteMessage)
-
+userRouter.route("/fetch-follower").post(userFollowers);
+userRouter.route("/fetch-following").post(userFollowings);
+userRouter.route("/fetch-user-profile").post(fetchProfilePicture);
+userRouter.route("/fetch-notifications").post(fetchNotification);
+userRouter.route("/check-tweet-likes").post(checkTweetLikes);
+userRouter.route("/user-chat-info").post(userInfoForChat);
+userRouter.route("/create-chat").post(createChat);
+userRouter.route("/get-chat").post(getChat);
+userRouter.route("/delete-chat").post(deleteChat);
+userRouter.route("/send-message").post(sendMessage);
+userRouter.route("/get-message").post(getMessage);
+userRouter.route("/delete-message").post(deleteMessage);
+userRouter.route("/delete-tweet").post(deleteTweet);
+userRouter.route("/update-tweet").post(
+  upload.fields([
+    {
+      name: "media",
+      maxCount: 1,
+    },
+  ]),
+  updateTweet
+);
+userRouter.route('/update-fetch-tweet').post(fetchSingleTweet)
 export { userRouter };
